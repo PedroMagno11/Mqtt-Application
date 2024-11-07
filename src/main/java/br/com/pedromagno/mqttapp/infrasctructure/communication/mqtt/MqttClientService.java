@@ -2,18 +2,18 @@ package br.com.pedromagno.mqttapp.infrasctructure.communication.mqtt;
 
 import br.com.pedromagno.mqttapp.MqttApplication;
 import br.com.pedromagno.mqttapp.domain.ClientMqtt;
+import br.com.pedromagno.mqttapp.domain.ClientMqttPub;
 import org.eclipse.paho.client.mqttv3.*;
 
-public class MqttClientConfig implements MqttCallbackExtended {
+public class MqttClientService implements MqttCallbackExtended {
 
     private IMqttClient mqttClient;
-    private String mensagemRecebida;
 
     private MqttConnectOptions mqttConnectOptions(){
         MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
-        mqttConnectOptions.setCleanSession(true);
+        mqttConnectOptions.setCleanSession(false);
         mqttConnectOptions.setConnectionTimeout(10);
-        mqttConnectOptions.setAutomaticReconnect(false);
+        mqttConnectOptions.setAutomaticReconnect(true);
         mqttConnectOptions.setKeepAliveInterval(50);
         mqttConnectOptions.setMaxInflight(3);
 
@@ -35,15 +35,15 @@ public class MqttClientConfig implements MqttCallbackExtended {
             }
             mqttClient.connect(options);
 
-            System.out.println("Conectado ao broker MQTT!");
+            MqttApplication.getApplication().atualizarTextArea("Conectado ao broker MQTT!");
 
             // Subscreve ao tópico
             subscribeToTopic(clientMqtt.getTopic());
-            System.out.println("Inscrito no tópico: " + clientMqtt.getTopic());
+            MqttApplication.getApplication().atualizarTextArea("Inscrito no tópico: " + clientMqtt.getTopic());
 
         } catch (MqttException e) {
             e.printStackTrace();
-            System.out.println("Erro ao conectar ao broker MQTT: " + e.getMessage());
+            MqttApplication.getApplication().atualizarTextArea("Erro ao conectar ao broker MQTT: " + e.getMessage());
         }
     }
 
@@ -51,7 +51,7 @@ public class MqttClientConfig implements MqttCallbackExtended {
         if (mqttClient.isConnected()) {
             mqttClient.subscribe(topic);
         } else {
-            System.out.println("Cliente não está conectado!");
+            MqttApplication.getApplication().atualizarTextArea("Cliente não está conectado!");
         }
     }
 
@@ -59,33 +59,44 @@ public class MqttClientConfig implements MqttCallbackExtended {
 
     @Override
     public void connectComplete(boolean reconnect, String serverURI) {
-        System.out.println("Conexão com o broker completada. Reconnect: " + reconnect + ", URI do servidor: " + serverURI);
+        MqttApplication.getApplication().atualizarTextArea("Conexão com o broker completada. Reconnect: " + reconnect + ", URI do servidor: " + serverURI);
     }
 
     @Override
     public void connectionLost(Throwable cause) {
-        System.out.println("Conexão perdida: " + cause.getMessage());
+        MqttApplication.getApplication().atualizarTextArea("Conexão perdida: " + cause.getMessage());
         // Tente reconectar aqui, por exemplo:
         try {
             mqttClient.reconnect();
         } catch (MqttException e) {
-            e.printStackTrace();
+            MqttApplication.getApplication().atualizarTextArea("Erro ao reconectar ao broker MQTT: " + e.getMessage());
         }
     }
 
     @Override
     public void messageArrived(String topic, MqttMessage message) throws Exception {
-        System.out.println("Mensagem recebida no tópico " + topic + ": " + new String(message.getPayload()));
-        mensagemRecebida = new String(message.getPayload());
+        MqttApplication.getApplication().atualizarTextArea("Mensagem recebida no tópico " + topic + ": " + new String(message.getPayload()));
+        String mensagemRecebida = new String(message.getPayload());
         MqttApplication.getApplication().atualizarTextArea(mensagemRecebida);
     }
 
     @Override
     public void deliveryComplete(IMqttDeliveryToken token) {
-        System.out.println("Mensagem entregue com sucesso: " + token.getMessageId());
+        MqttApplication.getApplication().atualizarTextArea("Mensagem entregue com sucesso: " + token.getMessageId());
     }
 
-    public String getMensagemRecebida() {
-        return mensagemRecebida;
+    public void publish(ClientMqttPub client, String message) throws MqttException {
+        MqttMessage mqttMessage = new MqttMessage(message.getBytes());
+        if(!mqttClient.isConnected()){
+            mqttClient.connect(mqttConnectOptions());
+        }
+        mqttClient.publish(client.getTopic(), mqttMessage);
+        MqttApplication.getApplication().atualizarTextArea("Você está publicando no tópico: " + client.getTopic());
+        MqttApplication.getApplication().atualizarTextArea("Mensagem publicada: " + mqttMessage.toString());
+    }
+
+    public void diconnect() throws MqttException {
+        mqttClient.disconnect();
+        MqttApplication.getApplication().atualizarTextArea("Desconectado do broker MQTT");
     }
 }
