@@ -75,6 +75,8 @@ Ou, via IntelliJ:
 3. Clique em **Conectar**
 4. Publique algo no tópico e veja o resultado no log
 
+<img src="assets/app.png">
+
 ---
 
 ## 🤝 Contribuições
