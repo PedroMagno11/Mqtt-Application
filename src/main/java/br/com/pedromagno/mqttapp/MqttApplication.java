@@ -19,7 +19,7 @@ public class MqttApplication extends Application {
 
     @Override
     public void start(Stage stage) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("hello-view.fxml"));
+        FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("mqtt-application-view.fxml"));
        Pane root = fxmlLoader.load();
         controller = fxmlLoader.getController();
         application = this;
@@ -33,6 +33,9 @@ public class MqttApplication extends Application {
         controller.atualizarTextArea(mensagem);
     }
 
+    public MqttAppController getController() {
+        return controller;
+    }
 
     public static void main(String[] args) {
         launch();

@@ -13,7 +13,7 @@ public class MqttClientConfig implements MqttCallbackExtended {
         MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
         mqttConnectOptions.setCleanSession(true);
         mqttConnectOptions.setConnectionTimeout(10);
-        mqttConnectOptions.setAutomaticReconnect(false);
+        mqttConnectOptions.setAutomaticReconnect(true);
         mqttConnectOptions.setKeepAliveInterval(50);
         mqttConnectOptions.setMaxInflight(3);
 
@@ -25,25 +25,27 @@ public class MqttClientConfig implements MqttCallbackExtended {
         String brokerUri = "tcp://" + clientMqtt.getServerURI()+ ":" + clientMqtt.getPort();
 
         try {
-            this.mqttClient = new MqttClient(brokerUri, "mqtt-application");
+            String clientId = MqttClient.generateClientId();
+            this.mqttClient = new MqttClient(brokerUri, clientId);
             mqttClient.setCallback(this);  // Definindo o callback para o cliente MQTT
 
             MqttConnectOptions options = mqttConnectOptions();
-            if(clientMqtt.getUsername() != null && clientMqtt.getPassword() != null && clientMqtt.getUsername().isEmpty() && clientMqtt.getPassword().isEmpty()){
+
+            if(clientMqtt.getUsername() != null && clientMqtt.getPassword() != null && !clientMqtt.getUsername().isEmpty() && !clientMqtt.getPassword().isEmpty()){
                 options.setUserName(clientMqtt.getUsername());
                 options.setPassword(clientMqtt.getPassword().toCharArray());
             }
             mqttClient.connect(options);
 
-            System.out.println("Conectado ao broker MQTT!");
-
+           MqttApplication.getApplication().atualizarTextArea("Conectado ao broker MQTT!");
             // Subscreve ao tópico
             subscribeToTopic(clientMqtt.getTopic());
-            System.out.println("Inscrito no tópico: " + clientMqtt.getTopic());
+//            System.out.println("Inscrito no tópico: " + clientMqtt.getTopic() + "\n");
+            MqttApplication.getApplication().atualizarTextArea("Endereço do broker: " + clientMqtt.getServerURI() + ":" + clientMqtt.getPort());
+            MqttApplication.getApplication().atualizarTextArea("Você está inscrito no tópico: " + clientMqtt.getTopic());
 
         } catch (MqttException e) {
-            e.printStackTrace();
-            System.out.println("Erro ao conectar ao broker MQTT: " + e.getMessage());
+            MqttApplication.getApplication().atualizarTextArea("Erro ao conectar ao broker MQTT: " + e.getMessage() + "\n");
         }
     }
 
@@ -51,7 +53,7 @@ public class MqttClientConfig implements MqttCallbackExtended {
         if (mqttClient.isConnected()) {
             mqttClient.subscribe(topic);
         } else {
-            System.out.println("Cliente não está conectado!");
+            MqttApplication.getApplication().atualizarTextArea("Cliente não está conectado!\n");
         }
     }
 
@@ -64,7 +66,7 @@ public class MqttClientConfig implements MqttCallbackExtended {
 
     @Override
     public void connectionLost(Throwable cause) {
-        System.out.println("Conexão perdida: " + cause.getMessage());
+        MqttApplication.getApplication().atualizarTextArea("Conexão perdida: " + cause.getMessage());
         // Tente reconectar aqui, por exemplo:
         try {
             mqttClient.reconnect();
@@ -77,7 +79,7 @@ public class MqttClientConfig implements MqttCallbackExtended {
     public void messageArrived(String topic, MqttMessage message) throws Exception {
         System.out.println("Mensagem recebida no tópico " + topic + ": " + new String(message.getPayload()));
         mensagemRecebida = new String(message.getPayload());
-        MqttApplication.getApplication().atualizarTextArea(mensagemRecebida);
+        MqttApplication.getApplication().atualizarTextArea("[+] Mensagem recebida no tópico " + topic + ": " + mensagemRecebida);
     }
 
     @Override
@@ -87,5 +89,26 @@ public class MqttClientConfig implements MqttCallbackExtended {
 
     public String getMensagemRecebida() {
         return mensagemRecebida;
+    }
+
+    public boolean isConnected(){
+        return mqttClient != null && mqttClient.isConnected();
+    }
+
+    public void disconnect() throws MqttException {
+        if(mqttClient != null){
+            mqttClient.disconnect();
+        }
+    }
+
+    public void publish(String topic, MqttMessage message) throws MqttException {
+        if(mqttClient == null){
+            throw new MqttException(new Throwable("Cliente Mqtt não inializado. Você se conectou ao broker ?"));
+        }
+        if(!mqttClient.isConnected()) {
+            throw new MqttException(new Throwable("Cliente Mqtt não está conectado. Conecte-se antes de publicar."));
+        }
+
+        mqttClient.publish(topic, message);
     }
 }
