@@ -1,5 +1,7 @@
 # MQTT Application
 
+<img src="assets/myMqttSpyApp.png" width="200">
+
 > Um cliente MQTT simples e funcional desenvolvido em Java com JavaFX e Eclipse Paho MQTT.
 
 ## 📌 Descrição
@@ -75,7 +77,7 @@ Ou, via IntelliJ:
 3. Clique em **Conectar**
 4. Publique algo no tópico e veja o resultado no log
 
-<img src="assets/app.png">
+<img src="assets/app.png" width="500px">
 
 ---
 
